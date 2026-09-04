@@ -1,0 +1,18 @@
+[project]
+name = "books-fastapi-service"
+version = "0.1.0"
+description = "Minimal FastAPI project bootstrap for the test task"
+readme = "README.md"
+requires-python = "==3.12.*"
+dependencies = [
+    "fastapi==0.116.1",
+    "pydantic-settings==2.10.1",
+    "uvicorn[standard]==0.35.0",
+]
+
+[build-system]
+requires = ["setuptools==75.8.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]
