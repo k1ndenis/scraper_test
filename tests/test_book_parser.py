@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from app.book_parser import BookParseError, parse_book_page
+from app.scraper.parser import BookParseError, parse_book_page
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "book_page.html"
 PAGE_URL = "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"

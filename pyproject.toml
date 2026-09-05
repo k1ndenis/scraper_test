@@ -35,4 +35,4 @@ requires = ["setuptools==75.8.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["app"]
+packages = ["app", "app.scraper"]

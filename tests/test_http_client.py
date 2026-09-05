@@ -3,7 +3,7 @@ import asyncio
 import httpx
 import pytest
 
-from app.http_client import ScraperHttpClient
+from app.scraper.http_client import ScraperHttpClient
 
 
 def test_get_text_retries_after_server_error() -> None:

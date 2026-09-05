@@ -36,7 +36,6 @@ RATING_VALUES = {
 
 def parse_book_page(html: str, page_url: str) -> ParsedBook:
     """Парсит одну HTML-страницу книги."""
-    
     _require_absolute_url(page_url)
     soup = BeautifulSoup(html, "lxml")
 
@@ -49,7 +48,10 @@ def parse_book_page(html: str, page_url: str) -> ParsedBook:
     rating = _parse_rating(soup.select_one(".star-rating"))
     category = _parse_category(soup)
     description = _parse_description(soup)
-    image_url = urljoin(page_url, _required_attribute(soup.select_one("#product_gallery img"), "src", "image"))
+    image_url = urljoin(
+        page_url,
+        _required_attribute(soup.select_one("#product_gallery img"), "src", "image"),
+    )
 
     return ParsedBook(
         title=title,
