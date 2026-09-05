@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from decimal import Decimal
 from enum import StrEnum
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.models import Book, Category
 from app.scraper.parser import ParsedBook
@@ -13,6 +16,16 @@ class SaveBookResult(StrEnum):
     CREATED = "created"
     UPDATED = "updated"
     UNCHANGED = "unchanged"
+
+
+@dataclass(frozen=True, slots=True)
+class BookListFilters:
+    search: str | None = None
+    category: str | None = None
+    min_price: Decimal | None = None
+    max_price: Decimal | None = None
+    rating: int | None = None
+    in_stock: bool | None = None
 
 
 class BookRepository:
@@ -65,3 +78,52 @@ class BookRepository:
 
         await self._session.flush()
         return result
+
+    async def list_books(
+        self,
+        filters: BookListFilters,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[Book], int]:
+        statement = select(Book)
+        count_statement = select(func.count()).select_from(Book)
+        conditions = []
+
+        if filters.category is not None:
+            statement = statement.join(Book.category)
+            count_statement = count_statement.join(Book.category)
+            conditions.append(Category.name == filters.category)
+        if filters.search is not None:
+            conditions.append(Book.title.ilike(f"%{filters.search}%"))
+        if filters.min_price is not None:
+            conditions.append(Book.price >= filters.min_price)
+        if filters.max_price is not None:
+            conditions.append(Book.price <= filters.max_price)
+        if filters.rating is not None:
+            conditions.append(Book.rating == filters.rating)
+        if filters.in_stock is True:
+            conditions.append(Book.stock_quantity > 0)
+        elif filters.in_stock is False:
+            conditions.append(Book.stock_quantity <= 0)
+
+        if conditions:
+            statement = statement.where(*conditions)
+            count_statement = count_statement.where(*conditions)
+
+        books = list(
+            (
+                await self._session.scalars(
+                    statement.options(selectinload(Book.category))
+                    .order_by(Book.id)
+                    .limit(limit)
+                    .offset(offset)
+                )
+            ).all()
+        )
+        total = await self._session.scalar(count_statement)
+        return books, total or 0
+
+    async def get_by_id(self, book_id: int) -> Book | None:
+        return await self._session.scalar(
+            select(Book).options(selectinload(Book.category)).where(Book.id == book_id)
+        )
