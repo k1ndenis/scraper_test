@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     app_env: str = Field(default="development", alias="APP_ENV")
     app_host: str = Field(default="0.0.0.0", alias="APP_HOST")
     app_port: int = Field(default=8000, alias="APP_PORT")
+    scraper_start_url: str = Field(
+        default="https://books.toscrape.com/catalogue/page-1.html",
+        alias="SCRAPER_START_URL",
+    )
 
     postgres_db: str = Field(default="books_db", alias="POSTGRES_DB")
     postgres_user: str = Field(default="books_user", alias="POSTGRES_USER")
