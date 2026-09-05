@@ -27,3 +27,8 @@ class ScrapeRunListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class ScrapeStartResponse(BaseModel):
+    run_id: int
+    status: ScrapeStatus

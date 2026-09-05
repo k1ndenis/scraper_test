@@ -47,6 +47,10 @@ def test_run_scraping_persists_books_and_counters() -> None:
         async def get_text(self, url: str) -> str:
             return self.pages[url]
 
+    class NoRequestScraperHttpClient:
+        async def get_text(self, url: str) -> str:
+            raise AssertionError("A completed scrape run must not make requests")
+
     async def scenario() -> None:
         engine = create_async_engine(database_url)
         try:
@@ -59,7 +63,13 @@ def test_run_scraping_persists_books_and_counters() -> None:
                     autoflush=False,
                 )
                 try:
+                    async with session_factory() as session:
+                        pending_run = ScrapeRun(status=ScrapeStatus.PENDING)
+                        session.add(pending_run)
+                        await session.flush()
+
                     scrape_run = await run_scraping(
+                        pending_run.id,
                         MockScraperHttpClient(),
                         start_url=START_URL,
                         session_factory=session_factory,
@@ -73,6 +83,18 @@ def test_run_scraping_persists_books_and_counters() -> None:
                     assert scrape_run.categories_processed == 1
                     assert scrape_run.started_at is not None
                     assert scrape_run.finished_at is not None
+
+                    repeated_run = await run_scraping(
+                        scrape_run.id,
+                        NoRequestScraperHttpClient(),
+                        start_url=START_URL,
+                        session_factory=session_factory,
+                    )
+
+                    assert repeated_run is not None
+                    assert repeated_run.status == ScrapeStatus.SUCCESS
+                    assert repeated_run.started_at == scrape_run.started_at
+                    assert repeated_run.finished_at == scrape_run.finished_at
 
                     async with session_factory() as session:
                         saved_books = (await session.scalars(select(Book))).all()
@@ -114,8 +136,14 @@ def test_run_scraping_records_failed_run_after_unexpected_error() -> None:
                     autoflush=False,
                 )
                 try:
+                    async with session_factory() as session:
+                        pending_run = ScrapeRun(status=ScrapeStatus.PENDING)
+                        session.add(pending_run)
+                        await session.flush()
+
                     with pytest.raises(RuntimeError, match="Catalog is unavailable"):
                         await run_scraping(
+                            pending_run.id,
                             FailingScraperHttpClient(),
                             start_url=START_URL,
                             session_factory=session_factory,

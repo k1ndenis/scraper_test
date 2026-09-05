@@ -14,15 +14,17 @@ from app.scraper.runner import load_product_pages
 
 
 async def run_scraping(
+    scrape_run_id: int,
     client: ScraperHttpClient | None = None,
     *,
     start_url: str | None = None,
     session_factory: async_sessionmaker[AsyncSession] = async_session_factory,
-) -> ScrapeRun:
+) -> ScrapeRun | None:
     scraper_client = client or ScraperHttpClient()
 
     try:
         return await _run_scraping(
+            scrape_run_id,
             scraper_client,
             start_url or get_settings().scraper_start_url,
             session_factory,
@@ -33,18 +35,21 @@ async def run_scraping(
 
 
 async def _run_scraping(
+    scrape_run_id: int,
     client: ScraperHttpClient,
     start_url: str,
     session_factory: async_sessionmaker[AsyncSession],
-) -> ScrapeRun:
+) -> ScrapeRun | None:
     async with session_factory() as session:
-        scrape_run = ScrapeRun(
-            status=ScrapeStatus.RUNNING,
-            started_at=datetime.now(UTC),
-        )
-        session.add(scrape_run)
+        scrape_run = await session.get(ScrapeRun, scrape_run_id)
+        if scrape_run is None:
+            return None
+        if scrape_run.status != ScrapeStatus.PENDING:
+            return scrape_run
+
+        scrape_run.status = ScrapeStatus.RUNNING
+        scrape_run.started_at = datetime.now(UTC)
         await session.commit()
-        scrape_run_id = scrape_run.id
 
         try:
             product_urls = await collect_product_urls(start_url, client)
