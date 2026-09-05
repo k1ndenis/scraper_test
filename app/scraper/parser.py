@@ -20,6 +20,7 @@ class ParsedBook:
     stock_quantity: int
     rating: int
     category: str
+    category_url: str
     description: str | None
     product_url: str
     image_url: str
@@ -46,7 +47,7 @@ def parse_book_page(html: str, page_url: str) -> ParsedBook:
         _required_text(soup.select_one(".availability"), "stock quantity")
     )
     rating = _parse_rating(soup.select_one(".star-rating"))
-    category = _parse_category(soup)
+    category, category_url = _parse_category(soup, page_url)
     description = _parse_description(soup)
     image_url = urljoin(
         page_url,
@@ -60,6 +61,7 @@ def parse_book_page(html: str, page_url: str) -> ParsedBook:
         stock_quantity=stock_quantity,
         rating=rating,
         category=category,
+        category_url=category_url,
         description=description,
         product_url=page_url,
         image_url=image_url,
@@ -111,11 +113,16 @@ def _parse_rating(element: Tag | None) -> int:
     raise BookParseError("Invalid rating")
 
 
-def _parse_category(soup: BeautifulSoup) -> str:
+def _parse_category(soup: BeautifulSoup, page_url: str) -> tuple[str, str]:
     categories = soup.select("ul.breadcrumb li a")
     if len(categories) < 2:
         raise BookParseError("Missing required field: category")
-    return _required_text(categories[-1], "category")
+
+    category_link = categories[-1]
+    return (
+        _required_text(category_link, "category"),
+        urljoin(page_url, _required_attribute(category_link, "href", "category URL")),
+    )
 
 
 def _parse_description(soup: BeautifulSoup) -> str | None:

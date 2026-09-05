@@ -18,6 +18,7 @@ def test_parse_book_page_extracts_product_data() -> None:
     assert book.stock_quantity == 22
     assert book.rating == 3
     assert book.category == "Poetry"
+    assert book.category_url == "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
     assert book.description == "It's hard to imagine a world without A Light in the Attic."
     assert book.product_url == PAGE_URL
     assert book.image_url == "https://books.toscrape.com/media/cache/2c/da/2cda5a10.jpg"
