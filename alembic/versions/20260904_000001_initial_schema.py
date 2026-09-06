@@ -80,3 +80,4 @@ def downgrade() -> None:
     op.drop_table("books")
     op.drop_table("scrape_runs")
     op.drop_table("categories")
+    scrape_status.drop(op.get_bind(), checkfirst=True)
